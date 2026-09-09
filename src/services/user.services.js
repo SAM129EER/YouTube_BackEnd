@@ -1,22 +1,43 @@
 import User from "../models/user.models.js";
-import bcrypt from "bcrypt";
-import jwt from "jsonwebtoken";
+import { hashPassword } from "../utils/bcrypt.js";
+import { generateToken } from "../utils/tokens.js";
 
 export const registerService = async (body) => {
-  const { channelName, email, password } = body;
-  const userExists = await User.findOne({ email });
-  if (userExists) {
-    throw new Error("User already exists");
+  const { channelName, email, password, avatar } = body;
+
+  if (!channelName || !email || !password) {
+    const error = new Error("Channel name, email, and password are required");
+    error.statusCode = 400;
+    throw error;
   }
 
-  const hashedPassword = await bcrypt.hash(password, 10);
+  const existingUser = await User.findOne({ email });
+  if (existingUser) {
+    const error = new Error("User already exists with this email");
+    error.statusCode = 409;
+    throw error;
+  }
+
+  const hashedPassword = await hashPassword(password);
+
   const user = await User.create({
     channelName,
     email,
     password: hashedPassword,
+    avatar,
   });
-  const accessToken = jwt.sign({ userId: user._id }, process.env.JWT_SECRET, {
-    expiresIn: "1h",
+
+  const accessToken = generateToken({
+    id: user._id,
+    email: user.email,
+    role: user.role,
   });
-  return { user, accessToken };
+
+  const userWithoutPassword = user.toObject();
+  delete userWithoutPassword.password;
+
+  return {
+    user: userWithoutPassword,
+    accessToken,
+  };
 };
