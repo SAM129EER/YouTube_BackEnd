@@ -1,21 +1,14 @@
 import User from "../models/user.models.js";
 import { hashPassword } from "../utils/bcrypt.js";
 import { generateToken } from "../utils/tokens.js";
+import { ApiError } from "../utils/ApiError.js";
 
 export const registerService = async (body) => {
   const { channelName, email, password, avatar } = body;
 
-  if (!channelName || !email || !password) {
-    const error = new Error("Channel name, email, and password are required");
-    error.statusCode = 400;
-    throw error;
-  }
-
   const existingUser = await User.findOne({ email });
   if (existingUser) {
-    const error = new Error("User already exists with this email");
-    error.statusCode = 409;
-    throw error;
+    throw new ApiError(409, "User already exists with this email");
   }
 
   const hashedPassword = await hashPassword(password);
