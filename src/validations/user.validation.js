@@ -59,3 +59,41 @@ export const loginSchema = z
     message: "Either email or username is required to login",
     path: ["email"],
   });
+
+export const forgotPasswordSchema = z.object({
+  email: z
+    .string({ required_error: "Email is required" })
+    .trim()
+    .email("Please enter a valid email address")
+    .toLowerCase(),
+});
+
+export const resetPasswordSchema = z
+  .object({
+    password: z
+      .string({ required_error: "Password is required" })
+      .min(6, "Password must be at least 6 characters")
+      .max(64, "Password must not exceed 64 characters"),
+    confirmPassword: z
+      .string({ required_error: "Confirm password is required" })
+      .min(6, "Confirm password must be at least 6 characters"),
+  })
+  .refine((data) => data.password === data.confirmPassword, {
+    message: "Password and confirm password must match",
+    path: ["confirmPassword"],
+  });
+
+export const verifyEmailSchema = z.object({
+  token: z
+    .string({ required_error: "Verification token is required" })
+    .trim()
+    .min(1, "Verification token cannot be empty"),
+});
+
+export const resendEmailVerificationSchema = z.object({
+  email: z
+    .string({ required_error: "Email is required" })
+    .trim()
+    .email("Please enter a valid email address")
+    .toLowerCase(),
+});

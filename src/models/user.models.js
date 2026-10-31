@@ -1,6 +1,7 @@
 import mongoose from "mongoose";
 import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
+import crypto from "crypto";
 
 const userSchema = new mongoose.Schema(
   {
@@ -72,6 +73,26 @@ const userSchema = new mongoose.Schema(
         ref: "User",
       },
     ],
+    isEmailVerified: {
+      type: Boolean,
+      default: false,
+    },
+    emailVerificationToken: {
+      type: String,
+      select: false,
+    },
+    emailVerificationExpiry: {
+      type: Date,
+      select: false,
+    },
+    forgotPasswordToken: {
+      type: String,
+      select: false,
+    },
+    forgotPasswordExpiry: {
+      type: Date,
+      select: false,
+    },
   },
   {
     timestamps: true,
@@ -79,6 +100,10 @@ const userSchema = new mongoose.Schema(
       transform: function (doc, ret) {
         delete ret.password;
         delete ret.refreshToken;
+        delete ret.emailVerificationToken;
+        delete ret.emailVerificationExpiry;
+        delete ret.forgotPasswordToken;
+        delete ret.forgotPasswordExpiry;
         return ret;
       },
     },
@@ -86,6 +111,10 @@ const userSchema = new mongoose.Schema(
       transform: function (doc, ret) {
         delete ret.password;
         delete ret.refreshToken;
+        delete ret.emailVerificationToken;
+        delete ret.emailVerificationExpiry;
+        delete ret.forgotPasswordToken;
+        delete ret.forgotPasswordExpiry;
         return ret;
       },
     },
@@ -135,6 +164,28 @@ userSchema.methods.generateRefreshToken = function () {
       expiresIn: process.env.REFRESH_TOKEN_EXPIRY || "10d",
     }
   );
+};
+
+// Method to generate Email Verification Token (stores hashed token, returns unhashed)
+userSchema.methods.generateEmailVerificationToken = function () {
+  const unHashedToken = crypto.randomBytes(32).toString("hex");
+  this.emailVerificationToken = crypto
+    .createHash("sha256")
+    .update(unHashedToken)
+    .digest("hex");
+  this.emailVerificationExpiry = Date.now() + 24 * 60 * 60 * 1000; // 24 hours
+  return unHashedToken;
+};
+
+// Method to generate Forgot Password Reset Token (stores hashed token, returns unhashed)
+userSchema.methods.generateForgotPasswordToken = function () {
+  const unHashedToken = crypto.randomBytes(32).toString("hex");
+  this.forgotPasswordToken = crypto
+    .createHash("sha256")
+    .update(unHashedToken)
+    .digest("hex");
+  this.forgotPasswordExpiry = Date.now() + 15 * 60 * 1000; // 15 minutes
+  return unHashedToken;
 };
 
 const User = mongoose.model("User", userSchema);
